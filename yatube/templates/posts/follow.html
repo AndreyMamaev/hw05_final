@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}
+  Посты интересных авторов.
+{% endblock %}
+{% block content %}
+  <h1>Посты интересных авторов.</h1>
+  {% load cache %}
+  {% cache 20 follow_index_page %}
+  {% include 'includes/switcher.html' %}
+  {% for post in page_obj %}
+    {% include "includes/post_card.html" %}
+    {% if post.group != null %}
+      <a href="{% url "posts:group_list" post.group.slug %}"
+      >все записи группы</a>
+    {% endif %}
+    {% if not forloop.last %}<hr>{% endif %}
+  {% endfor %}
+  {% endcache %}
+  {% include 'includes/paginator.html' %}
+{% endblock %}
