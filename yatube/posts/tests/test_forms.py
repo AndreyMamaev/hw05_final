@@ -153,7 +153,7 @@ class PostCreateFormTests(TestCase):
         )
         self.assertEqual(post.comments.count(), comment_count)
 
-    def test_guest_authorized_create_comment(self):
+    def test_authorized_create_comment(self):
         """Авторизованный пользователь создает комментарий к посту."""
         post = Post.objects.create(
             text='Тестовый пост',

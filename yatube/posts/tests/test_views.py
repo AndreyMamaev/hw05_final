@@ -226,37 +226,70 @@ class PostViewsTests(TestCase):
         self.assertTrue(response.context['follow'])
 
     def test_posts_list_follow_create_new_post(self):
-        """Новая запись пользователя появляется в ленте тех, кто на него
-         подписан и не появляется в ленте тех, кто не подписан."""
+        """Новая запись пользователя появляется в ленте тех,
+         кто на него подписан."""
         Follow.objects.create(
             user=PostViewsTests.user_0,
             author=PostViewsTests.user_1
-        )
-        Follow.objects.create(
-            user=PostViewsTests.user_1,
-            author=PostViewsTests.user_0
         )
         response = self.authorized_client.get(reverse('posts:follow_index'))
         first_object = response.context['page_obj'][0]
         # Проверка поcледнего поста на follow_index пользователя user_0
         self.assertEqual(first_object, PostViewsTests.post_in_group)
-        self.authorized_client.force_login(PostViewsTests.user_1)
-        response = self.authorized_client.get(reverse('posts:follow_index'))
-        first_object = response.context['page_obj'][0]
-        # Проверка поcледнего поста на follow_index пользователя user_1
-        self.assertEqual(first_object, PostViewsTests.post)
         # Создание нового поста пользователем user_1
         new_post = Post.objects.create(
             author=PostViewsTests.user_1,
             text='Новый пост',
         )
-        self.authorized_client.force_login(PostViewsTests.user_0)
         response = self.authorized_client.get(reverse('posts:follow_index'))
         first_object = response.context['page_obj'][0]
         # Проверка поcледнего поста на follow_index пользователя user_0
         self.assertEqual(first_object, new_post)
-        self.authorized_client.force_login(PostViewsTests.user_1)
+
+    def test_posts_list_follow_create_new_post(self):
+        """Новая запись пользователя не появляется в ленте тех,
+         кто на него не подписан."""
+        Follow.objects.create(
+            user=PostViewsTests.user_0,
+            author=PostViewsTests.user_1
+        )
         response = self.authorized_client.get(reverse('posts:follow_index'))
         first_object = response.context['page_obj'][0]
-        # Проверка поcледнего поста на follow_index пользователя user_1
-        self.assertEqual(first_object, PostViewsTests.post)
+        # Проверка поcледнего поста на follow_index пользователя user_0
+        self.assertEqual(first_object, PostViewsTests.post_in_group)
+        # Создание нового поста пользователем user_1
+        Post.objects.create(
+            author=PostViewsTests.user_0,
+            text='Новый пост',
+        )
+        response = self.authorized_client.get(reverse('posts:follow_index'))
+        first_object = response.context['page_obj'][0]
+        # Проверка поcледнего поста на follow_index пользователя user_0
+        self.assertEqual(first_object, PostViewsTests.post_in_group)
+
+    def test_follow_and_unfollow_view(self):
+        """Авторизованный пользователь может подписываться на
+         других пользователей и удалять их из подписок."""
+        follow_exists = Follow.objects.filter(
+            user=PostViewsTests.user_0,
+            author=PostViewsTests.user_1
+        ).exists()
+        self.assertTrue(not follow_exists)
+        self.authorized_client.get(reverse(
+            'posts:profile_follow',
+            kwargs={'username': PostViewsTests.user_1.username}
+        ))
+        follow_exists = Follow.objects.filter(
+            user=PostViewsTests.user_0,
+            author=PostViewsTests.user_1
+        ).exists()
+        self.assertTrue(follow_exists)
+        self.authorized_client.get(reverse(
+            'posts:profile_unfollow',
+            kwargs={'username': PostViewsTests.user_1.username}
+        ))
+        follow_exists = Follow.objects.filter(
+            user=PostViewsTests.user_0,
+            author=PostViewsTests.user_1
+        ).exists()
+        self.assertTrue(not follow_exists)

@@ -43,6 +43,10 @@ def profile(request, username):
     paginator = Paginator(posts, COUNT)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    # Объединить условия не получается:
+    # возникает ошибка 'AnonymousUser' object is not iterable
+    # Видимо из-за проверки поля user модели Follow для
+    # незарегистрированного пользователя
     if request.user.is_authenticated:
         following = Follow.objects.filter(
             user=request.user,
@@ -149,17 +153,16 @@ def profile_follow(request, username):
     author = User.objects.get(username=username)
     if user == author:
         return redirect('posts:profile', username)
-    if not Follow.objects.filter(user=user, author=author).exists():
-        Follow.objects.create(
-            user=user, author=author
-        )
+    Follow.objects.get_or_create(
+        user=user, author=author
+    )
     return redirect('posts:profile', username)
 
 
 @login_required
 def profile_unfollow(request, username):
     user = request.user
-    author = User.objects.get(username=username)
+    author = get_object_or_404(User, username=username)
     Follow.objects.filter(
         user=user, author=author
     ).delete()

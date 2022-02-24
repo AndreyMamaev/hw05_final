@@ -112,3 +112,10 @@ class Follow(models.Model):
         help_text='Задаётся автоматически пользователь на '
         'записи которого подписались.'
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'author'], name='unique follow'
+            )
+        ]
