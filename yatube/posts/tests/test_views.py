@@ -1,17 +1,22 @@
 import time
+import shutil
+import tempfile
 
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.conf import settings
 from django import forms
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from ..forms import PostForm, CommentForm
 from ..models import Follow, Post, Group
 
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 User = get_user_model()
 
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostViewsTests(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -54,6 +59,11 @@ class PostViewsTests(TestCase):
             group=cls.group,
             image=cls.group_uploaded
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
 
     def setUp(self):
         self.guest_client = Client()
@@ -246,7 +256,7 @@ class PostViewsTests(TestCase):
         # Проверка поcледнего поста на follow_index пользователя user_0
         self.assertEqual(first_object, new_post)
 
-    def test_posts_list_follow_create_new_post(self):
+    def test_posts_list_unfollow_create_new_post(self):
         """Новая запись пользователя не появляется в ленте тех,
          кто на него не подписан."""
         Follow.objects.create(
@@ -267,14 +277,14 @@ class PostViewsTests(TestCase):
         # Проверка поcледнего поста на follow_index пользователя user_0
         self.assertEqual(first_object, PostViewsTests.post_in_group)
 
-    def test_follow_and_unfollow_view(self):
+    def test_follow_view(self):
         """Авторизованный пользователь может подписываться на
-         других пользователей и удалять их из подписок."""
+         других пользователей."""
         follow_exists = Follow.objects.filter(
             user=PostViewsTests.user_0,
             author=PostViewsTests.user_1
         ).exists()
-        self.assertTrue(not follow_exists)
+        self.assertFalse(follow_exists)
         self.authorized_client.get(reverse(
             'posts:profile_follow',
             kwargs={'username': PostViewsTests.user_1.username}
@@ -284,6 +294,13 @@ class PostViewsTests(TestCase):
             author=PostViewsTests.user_1
         ).exists()
         self.assertTrue(follow_exists)
+
+    def test_unfollow_view(self):
+        """Авторизованный пользователь может отписываться от пользователей."""
+        Follow.objects.create(
+            user=PostViewsTests.user_0,
+            author=PostViewsTests.user_1
+        )
         self.authorized_client.get(reverse(
             'posts:profile_unfollow',
             kwargs={'username': PostViewsTests.user_1.username}
@@ -292,4 +309,4 @@ class PostViewsTests(TestCase):
             user=PostViewsTests.user_0,
             author=PostViewsTests.user_1
         ).exists()
-        self.assertTrue(not follow_exists)
+        self.assertFalse(follow_exists)

@@ -43,17 +43,12 @@ def profile(request, username):
     paginator = Paginator(posts, COUNT)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    # Объединить условия не получается:
-    # возникает ошибка 'AnonymousUser' object is not iterable
-    # Видимо из-за проверки поля user модели Follow для
-    # незарегистрированного пользователя
-    if request.user.is_authenticated:
-        following = Follow.objects.filter(
-            user=request.user,
-            author=User.objects.get(username=username),
-        ).exists()
-    else:
-        following = False
+    is_auth = request.user.is_authenticated
+    is_exists = Follow.objects.filter(
+        user__id=request.user.id,
+        author=User.objects.get(username=username),
+    ).exists()
+    following = is_auth and is_exists
     template = 'posts/profile.html'  # Шаблон
     context = {
         'author': user,

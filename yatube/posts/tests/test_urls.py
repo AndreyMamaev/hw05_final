@@ -172,7 +172,7 @@ class PostURLTests(TestCase):
             user=PostURLTests.user,
             author=PostURLTests.another_user
         ).exists()
-        self.assertTrue(not follow_exists)
+        self.assertFalse(follow_exists)
         self.authorized_client.get(
             f'/profile/{PostURLTests.another_user.username}/follow/'
         )
@@ -188,4 +188,4 @@ class PostURLTests(TestCase):
             user=PostURLTests.user,
             author=PostURLTests.another_user
         ).exists()
-        self.assertTrue(not follow_exists)
+        self.assertFalse(follow_exists)
